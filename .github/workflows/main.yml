@@ -43,5 +43,5 @@ jobs:
           TGUSERID: ${{ secrets.TGUSERID }}
         run: |
           python3 ./main.py
-          torch 1.txt
+          vi 1.txt
           git add 1.txt
