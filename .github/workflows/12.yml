@@ -1,0 +1,67 @@
+name: 自动更新仓库
+
+on:
+  schedule:
+    - cron: "5 0 1 * *" # 分 时 日 月 星期
+
+  push:
+    branches: ["main"]
+    paths:  
+      - '.github/workflows/*'
+
+jobs:
+  AutoPush:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 拉取代码
+        uses: actions/checkout@v3
+
+      - name: 配置用户名和邮箱
+        run: |
+          echo "配置用户名: 'Github-Bot'"
+          git config --local user.name "Github-Bot"
+          echo "配置邮箱: bot@github.com"
+          git config --local user.email "bot@github.com"
+
+      - name: 修改文件
+        run: |
+          nowDate=$(TZ='Asia/Shanghai' date +'%Y-%m-%d %H:%M:%S')
+          PATH=$(pwd)
+          echo "当前路径: $PATH"
+          FILE_PATH="$PATH/modify.txt"
+          echo "文件路径: $FILE_PATH"
+          
+          if [ -f $FILE_PATH ]; then
+            echo "当前北京时间: $nowDate"
+            echo $nowDate >> $FILE_PATH
+          else
+            echo "$FILE_PATH 文件不存在, 进行创建..."
+            echo -e "因为GitHub的限制策略，如果仓库60天内没有更新\n那么所创建的工作流也会自动被禁用\n所以需要每60天就更新一次仓库以保证脚本的运行\n" > $FILE_PATH
+            echo "当前北京时间: $nowDate"
+            echo $nowDate >> $FILE_PATH
+          fi
+          
+      - name: 暂存和提交
+        run: |
+          echo "暂存 modify.txt"
+          git add modify.txt
+
+          echo "提交 modify.txt"
+          git commit -m "Update modify time"
+          echo "提交完成！"
+
+      - name: 推送到GitHub
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.TOKEN_GITHUB }}
+          branch: main
+          force: true
+# 说明-每月1号凌晨开始排队等待执行，大概8点后会修改modify.txt文件然后自动push到仓库
+# 在 .github\workflows 文件夹中创建一个yml文件，将此文件的内容复制进去，然后提交
+# 在https://github.com/xxx/GLaDOS-CheckIn/settings/actions 的General中修改Workflows permissions的权限为Read and write permissions，然后保存
+# 在https://github.com/settings/tokens 的Personal access tokens -> Tokens(classic)生成一个token
+# Note：自己填
+# Expiration：token过期时间，自己配置
+# Select scopes：repo打 √
+# 然后生成token，将token填入https://github.com/feixuei/GLaDOS-CheckIn/settings/secrets/actions 中和cookie一样配置，命名为 TOKEN_GITHUB
